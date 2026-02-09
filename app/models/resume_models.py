@@ -23,6 +23,7 @@ class ResumeUploadResponse(BaseModel):
     domain: str
     mobile: str
     email: str
+    location: Optional[str] = None
     education: str
     filename: str
     skillset: str

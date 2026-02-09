@@ -19,6 +19,7 @@ from app.education import EducationService
 from app.mastercategory import MasterCategoryService
 from app.category import CategoryService
 from app.role import RoleService
+from app.location import LocationService
 from app.repositories.resume_repo import ResumeRepository
 from app.models.resume_models import ResumeUpload, ResumeUploadResponse
 from app.utils.cleaning import sanitize_filename
@@ -60,6 +61,7 @@ class ResumeController:
         self.mastercategory_service = MasterCategoryService(session)
         self.category_service = CategoryService(session)
         self.role_service = RoleService(session)
+        self.location_service = LocationService(session)
     
     def _parse_extract_modules(self, extract_modules: Optional[str]) -> set:
         """
@@ -73,7 +75,7 @@ class ResumeController:
         """
         if not extract_modules or extract_modules.lower().strip() in ("all", "0"):
             # Extract all modules (supports "all", "0", or empty/None)
-            return {"designation", "name", "role", "email", "mobile", "experience", "domain", "education", "skills"}
+            return {"designation", "name", "role", "email", "mobile", "experience", "domain", "education", "skills", "location"}
         
         # Map numbers to module names
         module_map = {
@@ -86,6 +88,7 @@ class ResumeController:
             "7": "domain",
             "8": "education",
             "9": "skills",
+            "10": "location",
         }
         
         # Parse comma-separated list
@@ -94,7 +97,7 @@ class ResumeController:
         
         # If "0" or "all" appears anywhere in the list, extract all modules
         if "0" in parts or "all" in parts:
-            return {"designation", "name", "role", "email", "mobile", "experience", "domain", "education", "skills"}
+            return {"designation", "name", "role", "email", "mobile", "experience", "domain", "education", "skills", "location"}
         
         for part in parts:
             if not part:
@@ -103,7 +106,7 @@ class ResumeController:
             if part in module_map:
                 modules.add(module_map[part])
             # Check if it's a direct module name
-            elif part in {"designation", "name", "role", "email", "mobile", "experience", "domain", "education", "skills"}:
+            elif part in {"designation", "name", "role", "email", "mobile", "experience", "domain", "education", "skills", "location"}:
                 modules.add(part)
             else:
                 logger.warning(f"Unknown module option: {part}, ignoring")
@@ -135,6 +138,7 @@ class ResumeController:
                         "domain": None,
                         "mobile": None,
                         "email": None,
+                        "location": None,
                         "education": None,
                         "filename": safe_filename,
                         "skillset": "",
@@ -167,6 +171,7 @@ class ResumeController:
                         "domain": None,
                         "mobile": None,
                         "email": None,
+                        "location": None,
                         "education": None,
                         "filename": safe_filename,
                         "skillset": "",
@@ -195,6 +200,7 @@ class ResumeController:
                         "domain": None,
                         "mobile": None,
                         "email": None,
+                        "location": None,
                         "education": None,
                         "filename": safe_filename,
                         "skillset": "",
@@ -264,6 +270,7 @@ class ResumeController:
                     "domain": None,
                     "mobile": None,
                     "email": None,
+                    "location": None,
                     "education": None,
                     "filename": safe_filename,
                     "skillset": "",
@@ -497,6 +504,17 @@ class ResumeController:
                 except Exception as e:
                     logger.error(f"❌ MOBILE EXTRACTION FAILED: {e}", extra={"resume_id": resume_id, "error": str(e)})
             
+            # Extract location (10)
+            if "location" in modules_to_extract:
+                try:
+                    await self.location_service.extract_and_save_location(
+                        resume_text=resume_text,
+                        resume_id=resume_id,
+                        filename=safe_filename
+                    )
+                except Exception as e:
+                    logger.error(f"❌ LOCATION EXTRACTION FAILED: {e}", extra={"resume_id": resume_id, "error": str(e)})
+            
             # Extract experience (6)
             if "experience" in modules_to_extract:
                 try:
@@ -566,6 +584,7 @@ class ResumeController:
                     "designation": resume_metadata.designation,
                     "email": resume_metadata.email,
                     "mobile": resume_metadata.mobile,
+                    "location": resume_metadata.location,
                     "experience": resume_metadata.experience,
                     "domain": resume_metadata.domain,
                     "education": resume_metadata.education[:100] if resume_metadata.education else None,
@@ -579,6 +598,7 @@ class ResumeController:
             print(f"   Designation: {resume_metadata.designation}")
             print(f"   Email: {resume_metadata.email}")
             print(f"   Mobile: {resume_metadata.mobile}")
+            print(f"   Location: {resume_metadata.location}")
             print(f"   Experience: {resume_metadata.experience}")
             print(f"   Domain: {resume_metadata.domain}")
             print(f"   Master Category: {resume_metadata.mastercategory}")
@@ -657,6 +677,7 @@ class ResumeController:
                     "designation": resume_metadata.designation,
                     "email": resume_metadata.email,
                     "mobile": resume_metadata.mobile,
+                    "location": resume_metadata.location,
                     "experience": resume_metadata.experience,
                     "domain": resume_metadata.domain,
                     "education": resume_metadata.education[:100] if resume_metadata.education else None,
@@ -675,6 +696,7 @@ class ResumeController:
                 domain=resume_metadata.domain or "",  # Extracted domain
                 mobile=resume_metadata.mobile or "",  # Extracted mobile
                 email=resume_metadata.email or "",  # Extracted email
+                location=resume_metadata.location,  # Extracted location
                 education=resume_metadata.education or "",  # Extracted education
                 filename=resume_metadata.filename,
                 skillset=resume_metadata.skillset or "",  # Extracted skills
@@ -970,6 +992,16 @@ class ResumeController:
                 except Exception as e:
                     logger.error(f"[ERROR] MOBILE EXTRACTION FAILED: {e}", extra={"resume_id": resume_id, "error": str(e)})
             
+            if "location" in modules_to_extract:
+                try:
+                    await self.location_service.extract_and_save_location(
+                        resume_text=resume_text,
+                        resume_id=resume_id,
+                        filename=filename
+                    )
+                except Exception as e:
+                    logger.error(f"[ERROR] LOCATION EXTRACTION FAILED: {e}", extra={"resume_id": resume_id, "error": str(e)})
+            
             if "experience" in modules_to_extract:
                 try:
                     await self.experience_service.extract_and_save_experience(
@@ -1057,6 +1089,7 @@ class ResumeController:
                 domain=resume_metadata.domain or "",
                 mobile=resume_metadata.mobile or "",
                 email=resume_metadata.email or "",
+                location=resume_metadata.location,
                 education=resume_metadata.education or "",
                 filename=resume_metadata.filename,
                 skillset=resume_metadata.skillset or "",

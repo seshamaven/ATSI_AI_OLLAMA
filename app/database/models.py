@@ -20,6 +20,7 @@ class ResumeMetadata(Base):
     domain = Column(String(255), nullable=True)
     mobile = Column(String(50), nullable=True)
     email = Column(String(255), nullable=True)
+    location = Column(String(255), nullable=True)  # Candidate current location (city, state, country)
     education = Column(Text, nullable=True)
     filename = Column(String(512), nullable=False)
     skillset = Column(Text, nullable=True)

@@ -7,7 +7,7 @@ REM Get directory where this .bat file exists
 set BASE_DIR=%~dp0
 
 REM Set resume folder relative to project
-set RESUME_FOLDER=%BASE_DIR%Resumes
+set RESUME_FOLDER=D:\V2
 set API_URL=http://localhost:8000/api/v1/upload-resume
  
 echo ========================================
@@ -33,11 +33,12 @@ echo   6 - Experience only
 echo   7 - Domain only
 echo   8 - Education only
 echo   9 - Skills only
+echo  10 - Location only
 echo.
 echo   You can also select multiple modules:
-echo   Example: 1,2,3 or 1,9 or designation,skills,role
+echo   Example: 1,2,3 or 1,9,10 or designation,skills,location
 echo.
-set /p MODULE_CHOICE="Enter your choice (0-9, comma-separated, or 'all'): "
+set /p MODULE_CHOICE="Enter your choice (0-10, comma-separated, or 'all'): "
 
 REM Default to "all" if empty
 if "!MODULE_CHOICE!"=="" set MODULE_CHOICE=0
